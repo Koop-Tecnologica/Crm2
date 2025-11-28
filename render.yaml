@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: espocrm
+    env: php
+    plan: free
+    buildCommand: ""
+    startCommand: "php -S 0.0.0.0:10000 -t public"
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        value: "mysql://root:password@your-db-host:3306/espocrm"
