@@ -2,11 +2,10 @@ services:
   - type: web
     name: espocrm
     env: php
-    plan: free
+    region: oregon
     buildCommand: ""
     startCommand: "php -S 0.0.0.0:10000 -t public"
+    plan: free
     envVars:
-      - key: APP_ENV
-        value: production
       - key: DATABASE_URL
-        value: "mysql://root:password@your-db-host:3306/espocrm"
+        value: "postgresql://espouser:J3q7c9HABfyDwv6GnGKC1zYeKZEuyPyH@dpg-d4l3dcbe5dus73fi6vd0-a/espocrm_yf42"
