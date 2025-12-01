@@ -1,31 +1,28 @@
-FROM php:8.2-apache
+FROM php:8.1-apache
 
 # Instalar extensiones necesarias para EspoCRM
 RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    unzip \
-    git \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql zip
+    libzip-dev unzip libpng-dev libonig-dev mariadb-client \
+    && docker-php-ext-install pdo pdo_mysql zip gd
 
-# Habilitar mod_rewrite de Apache
+# Habilitar mod_rewrite
 RUN a2enmod rewrite
 
-# Configurar Apache para que el DocumentRoot sea /var/www/html/public
+# Configurar Apache para que apunte a /public
 RUN sed -i 's|/var/www/html|/var/www/html/public|' /etc/apache2/sites-available/000-default.conf
 
-# Permitir .htaccess dentro de /public
+# Permitir .htaccess
 RUN sed -i 's|AllowOverride None|AllowOverride All|' /etc/apache2/apache2.conf
 
-# Copiar el proyecto al contenedor
-COPY . /var/www/html
+# Copiar archivos del proyecto
+COPY . /var/www/html/
 
-# Asignar permisos correctos
-RUN chown -R www-data:www-data /var/www/html
+# Asignar permisos correctos (IMPORTANTE para evitar 403)
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html \
+    && chmod -R 755 /var/www/html/public
 
+# Exponer puerto
 EXPOSE 80
 
 CMD ["apache2-foreground"]
