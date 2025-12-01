@@ -1,27 +1,36 @@
 FROM php:8.2-apache
 
-# Instalar extensiones necesarias
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
     unzip \
     libpng-dev \
-    libjpeg-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    libzip-dev \
     libonig-dev \
     libxml2-dev \
     libpq-dev \
-    && docker-php-ext-install pdo pdo_mysql pdo_pgsql gd mbstring zip
+    && rm -rf /var/lib/apt/lists/*
 
-# Habilitar mod_rewrite
-RUN a2enmod rewrite
+# Configuración de GD para PHP 8.x
+RUN docker-php-ext-configure gd \
+    --with-jpeg=/usr/include \
+    --with-freetype=/usr/include
 
-# Copiar proyecto al contenedor
-COPY . /var/www/html/
+# Instalar extensiones PHP necesarias para EspoCRM
+RUN docker-php-ext-install \
+    gd \
+    zip \
+    mbstring \
+    pdo \
+    pdo_mysql \
+    pdo_pgsql
 
-# Permisos
-RUN chown -R www-data:www-data /var/www/html
-RUN chmod -R 775 /var/www/html
+# Copiar todos los archivos del proyecto al contenedor
+COPY . /var/www/html
 
-# Puerto
+# Dar permisos de escritura
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html
+
 EXPOSE 80
-
-# Comando final
-CMD ["apache2-foreground"]
