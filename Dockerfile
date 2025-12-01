@@ -1,36 +1,32 @@
 FROM php:8.2-apache
 
-# Instalar dependencias del sistema
+# Instalar extensiones necesarias para EspoCRM
 RUN apt-get update && apt-get install -y \
-    unzip \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
     libzip-dev \
-    libonig-dev \
-    libxml2-dev \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+    unzip \
+    git \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd pdo pdo_mysql zip
 
-# Configuración de GD para PHP 8.x
-RUN docker-php-ext-configure gd \
-    --with-jpeg=/usr/include \
-    --with-freetype=/usr/include
+# Habilitar mod_rewrite de Apache
+RUN a2enmod rewrite
 
-# Instalar extensiones PHP necesarias para EspoCRM
-RUN docker-php-ext-install \
-    gd \
-    zip \
-    mbstring \
-    pdo \
-    pdo_mysql \
-    pdo_pgsql
+# Configurar Apache para que el DocumentRoot sea /var/www/html/public
+RUN sed -i 's|/var/www/html|/var/www/html/public|' /etc/apache2/sites-available/000-default.conf
 
-# Copiar todos los archivos del proyecto al contenedor
+# Permitir .htaccess dentro de /public
+RUN sed -i 's|AllowOverride None|AllowOverride All|' /etc/apache2/apache2.conf
+
+# Copiar el proyecto al contenedor
 COPY . /var/www/html
 
-# Dar permisos de escritura
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html
+# Asignar permisos correctos
+RUN chown -R www-data:www-data /var/www/html
 
 EXPOSE 80
+
+CMD ["apache2-foreground"]
+
