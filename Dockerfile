@@ -21,15 +21,20 @@ RUN a2enmod rewrite
 # Copia todo tu repositorio a /var/www/html/
 COPY . /var/www/html/
 
-# 4. Configurar Apache para que apunte a la carpeta 'public/'
-# y habilitar el uso de archivos .htaccess
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf \
-    && sed -i 's|AllowOverride None|AllowOverride All|g' /etc/apache2/apache2.conf
+# 4. Configurar Apache para apuntar a la RAÍZ DEL PROYECTO (/var/www/html) (¡CORRECCIÓN CLAVE!)
+# Esto permite que tu archivo .htaccess funcione para redirigir a 'public'.
+RUN echo '<VirtualHost *:80>\n' \
+    '    DocumentRoot /var/www/html\n' \
+    '    <Directory /var/www/html>\n' \
+    '        AllowOverride All\n' \
+    '        Require all granted\n' \
+    '    </Directory>\n' \
+    '    ErrorLog ${APACHE_LOG_DIR}/error.log\n' \
+    '    CustomLog ${APACHE_LOG_DIR}/access.log combined\n' \
+    '</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
-# 5. Permisos (CORRECCIÓN CLAVE para el 403 Forbidden)
-# Establecer el propietario www-data y aplicar permisos seguros:
-# Directorios: 755 (Lectura/Escritura/Ejecución)
-# Archivos: 644 (Solo Lectura)
+# 5. Permisos
+# Establecer el propietario www-data y aplicar permisos seguros
 RUN chown -R www-data:www-data /var/www/html \
     && find /var/www/html -type d -exec chmod 755 {} \; \
     && find /var/www/html -type f -exec chmod 644 {} \;
