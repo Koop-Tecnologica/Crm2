@@ -1,5 +1,5 @@
-# Imagen base de PHP 8.1 con Apache
-FROM php:8.1-apache
+# Imagen base de PHP 8.2 con Apache (CORRECCIÓN APLICADA AQUÍ)
+FROM php:8.2-apache
 
 # 1. Instala extensiones necesarias
 RUN apt-get update && apt-get install -y \
@@ -18,10 +18,9 @@ RUN apt-get update && apt-get install -y \
 RUN a2enmod rewrite
 
 # 3. Copiar código de EspoCRM al contenedor
-# Copia todo tu repositorio a /var/www/html/
 COPY . /var/www/html/
 
-# 4. Configurar Apache para apuntar a la RAÍZ DEL PROYECTO (/var/www/html) (¡CORRECCIÓN CLAVE!)
+# 4. Configurar Apache para apuntar a la RAÍZ DEL PROYECTO (/var/www/html)
 # Esto permite que tu archivo .htaccess funcione para redirigir a 'public'.
 RUN echo '<VirtualHost *:80>\n' \
     '    DocumentRoot /var/www/html\n' \
