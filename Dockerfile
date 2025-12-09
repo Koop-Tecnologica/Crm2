@@ -1,51 +1,41 @@
-# Imagen base de PHP 8.2 con Apache
 FROM php:8.2-apache
 
-# 1. Instala extensiones y librerías necesarias (INCLUYE EXIF)
+# Instalar dependencias necesarias para EspoCRM
 RUN apt-get update && apt-get install -y \
     unzip \
+    git \
+    libzip-dev \
+    libicu-dev \
     libpng-dev \
     libjpeg-dev \
-    libpq-dev \
-    libzip-dev \
-    libexif-dev \
-    && docker-php-ext-configure gd --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql pdo_pgsql gd zip exif \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    libfreetype6-dev \
+    libxml2-dev \
+    && docker-php-ext-install intl zip pdo pdo_mysql gd
 
-# 1.5. Configurar php.ini para optimizar el rendimiento (NUEVO PASO)
-RUN echo 'max_execution_time = 180' >> /usr/local/etc/php/conf.d/custom.ini \
-    && echo 'max_input_time = 180' >> /usr/local/etc/php/conf.d/custom.ini \
-    && echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/custom.ini \
-    && echo 'post_max_size = 20M' >> /usr/local/etc/php/conf.d/custom.ini \
-    && echo 'upload_max_filesize = 20M' >> /usr/local/etc/php/conf.d/custom.ini
-
-# 2. Habilitar mod_rewrite
+# Habilitar mod_rewrite
 RUN a2enmod rewrite
 
-# 3. Copiar código de EspoCRM al contenedor
+# Copiar archivos del proyecto al contenedor
 COPY . /var/www/html/
 
-# 4. Configurar Apache para apuntar a la RAÍZ DEL PROYECTO (/var/www/html)
-RUN echo '<VirtualHost *:80>\n' \
-    '    DocumentRoot /var/www/html\n' \
-    '    <Directory /var/www/html>\n' \
-    '        AllowOverride All\n' \
-    '        Require all granted\n' \
-    '    </Directory>\n' \
-    '    ErrorLog ${APACHE_LOG_DIR}/error.log\n' \
-    '    CustomLog ${APACHE_LOG_DIR}/access.log combined\n' \
-    '</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
+# Asegurar propietario correcto
+RUN chown -R www-data:www-data /var/www/html
 
-# 5. Permisos
-RUN chown -R www-data:www-data /var/www/html \
-    && find /var/www/html -type d -exec chmod 755 {} \; \
-    && find /var/www/html -type f -exec chmod 644 {} \;
+# Ajustar permisos para carpetas requeridas por EspoCRM
+RUN find /var/www/html -type d -exec chmod 755 {} \;
+RUN find /var/www/html -type f -exec chmod 644 {} \;
 
-# 6. Puerto expuesto
+# Carpetas que deben tener permisos de escritura
+RUN chmod -R 775 /var/www/html/data \
+    && chmod -R 775 /var/www/html/custom \
+    && chmod -R 775 /var/www/html/uploads \
+    && chown -R www-data:www-data /var/www/html/data \
+    && chown -R www-data:www-data /var/www/html/custom \
+    && chown -R www-data:www-data /var/www/html/uploads
+
+# Puerto
 EXPOSE 80
 
-# 7. Iniciar Apache en primer plano
 CMD ["apache2-foreground"]
+
     
