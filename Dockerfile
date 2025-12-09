@@ -40,4 +40,3 @@ RUN chmod -R 775 /var/www/html/data \
 EXPOSE 80
 
 CMD ["apache2-foreground"]
-
