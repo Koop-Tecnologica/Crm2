@@ -5,7 +5,7 @@ FROM php:8.2-apache
 # 1. INSTALACIÓN DE DEPENDENCIAS (Ajuste para estabilidad en Render/Apt)
 # ----------------------------------------------------------------------------------
 
-# 1a. Actualizar y aplicar parches (Mejora la estabilidad del "apt-get update")
+# 1a. Actualizar y aplicar parches
 RUN apt-get update --fix-missing && apt-get -y upgrade
 
 # 1b. Instalar librerías necesarias
@@ -37,7 +37,7 @@ RUN a2enmod rewrite
 # 3. Copiar código de EspoCRM al contenedor
 COPY . /var/www/html/
 
-# 4. Configurar Apache
+# 4. Configurar Apache para apuntar a la RAÍZ DEL PROYECTO (/var/www/html)
 RUN echo '<VirtualHost *:80>\n' \
     '    DocumentRoot /var/www/html\n' \
     '    <Directory /var/www/html>\n' \
@@ -58,7 +58,7 @@ RUN chown -R www-data:www-data /var/www/html \
     && find /var/www/html -type f -exec chmod 644 {} \;
 
 # 5b. CORRECCIÓN CRÍTICA DE ESPO-CRM: Aseguramos permisos de escritura (775)
-# en los directorios donde se guardan la configuración y datos.
+# Esto es esencial para que EspoCRM pueda crear el archivo config.php
 RUN chmod -R 775 /var/www/html/data \
     && chmod -R 775 /var/www/html/application/config
 
