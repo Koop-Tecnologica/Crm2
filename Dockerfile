@@ -2,11 +2,8 @@
 FROM php:8.2-apache
 
 # ----------------------------------------------------------------------------------
-# 1. INSTALACIÓN DE DEPENDENCIAS (Solución Unificada para evitar el error 100)
+# 1. INSTALACIÓN DE DEPENDENCIAS (Solución Unificada)
 # ----------------------------------------------------------------------------------
-# Unificamos update, install, configuración de extensiones y limpieza en un solo paso
-# para garantizar que se ejecute en el mismo contexto y resolver problemas de caché/repositorios.
-
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     unzip \
@@ -25,10 +22,10 @@ RUN apt-get update && \
 # ----------------------------------------------------------------------------------
 # 1.5. Configurar php.ini para optimizar el rendimiento
 RUN echo 'max_execution_time = 180' >> /usr/local/etc/php/conf.d/custom.ini \
-    && echo 'max_input_time = 180' >> /usr/local/etc/php/conf.d/custom.ini \
-    && echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/custom.ini \
-    && echo 'post_max_size = 20M' >> /usr/local/etc/php/conf.d/custom.ini \
-    && echo 'upload_max_filesize = 20M' >> /usr/local/etc/php/conf.d/custom.ini
+    && echo 'max_input_time = 180' >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo 'post_max_size = 20M' >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo 'upload_max_filesize = 20M' >> /usr/local/etc/php/conf.d/custom.ini
 
 # 2. Habilitar mod_rewrite
 RUN a2enmod rewrite
@@ -38,28 +35,27 @@ COPY . /var/www/html/
 
 # 4. Configurar Apache para apuntar a la RAÍZ DEL PROYECTO (/var/www/html)
 RUN echo '<VirtualHost *:80>\n' \
-    '    DocumentRoot /var/www/html\n' \
-    '    <Directory /var/www/html>\n' \
-    '        AllowOverride All\n' \
-    '        Require all granted\n' \
-    '    </Directory>\n' \
-    '    ErrorLog ${APACHE_LOG_DIR}/error.log\n' \
-    '    CustomLog ${APACHE_LOG_DIR}/access.log combined\n' \
-    '</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
+    '    DocumentRoot /var/www/html\n' \
+    '    <Directory /var/www/html>\n' \
+    '        AllowOverride All\n' \
+    '        Require all granted\n' \
+    '    </Directory>\n' \
+    '    ErrorLog ${APACHE_LOG_DIR}/error.log\n' \
+    '    CustomLog ${APACHE_LOG_DIR}/access.log combined\n' \
+    '    </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
 # ----------------------------------------------------------------------------------
-# 5. PERMISOS (Ajuste crítico para guardar el config.php)
+# 5. PERMISOS (Corregido y Limpiado de caracteres ocultos)
 # ----------------------------------------------------------------------------------
 
 # 5a. Permisos generales: Propiedad para www-data y permisos estándar
-RUN chown -R www-data:www-data /var/www/html \
-    && find /var/www/html -type d -exec chmod 755 {} \; \
-    && find /var/www/html -type f -exec chmod 644 {} \;
+RUN chown -R www-data:www-data /var/www/html && \
+    find /var/www/html -type d -exec chmod 755 {} \; && \
+    find /var/www/html -type f -exec chmod 644 {} \;
 
 # 5b. CORRECCIÓN CRÍTICA DE ESPO-CRM: Aseguramos permisos de escritura (775)
-# Esto es esencial para que EspoCRM pueda crear el archivo config.php
-RUN chmod -R 775 /var/www/html/data \
-    && chmod -R 775 /var/www/html/application/config
+RUN chmod -R 775 /var/www/html/data && \
+    chmod -R 775 /var/www/html/application/config
 
 # ----------------------------------------------------------------------------------
 
