@@ -1,19 +1,29 @@
 # Imagen base de PHP 8.2 con Apache
 FROM php:8.2-apache
 
-# 1. Instala extensiones y librerías necesarias (INCLUYE EXIF)
-RUN apt-get update && apt-get install -y \
+# ----------------------------------------------------------------------------------
+# 1. INSTALACIÓN DE DEPENDENCIAS (Ajuste para estabilidad en Render/Apt)
+# ----------------------------------------------------------------------------------
+
+# 1a. Actualizar y aplicar parches (Mejora la estabilidad del "apt-get update")
+RUN apt-get update --fix-missing && apt-get -y upgrade
+
+# 1b. Instalar librerías necesarias
+RUN apt-get install -y \
     unzip \
     libpng-dev \
     libjpeg-dev \
     libpq-dev \
     libzip-dev \
-    libexif-dev \
-    && docker-php-ext-configure gd --with-jpeg \
+    libexif-dev
+
+# 1c. Instalar extensiones de PHP y limpiar
+RUN docker-php-ext-configure gd --with-jpeg \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql gd zip exif \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# ----------------------------------------------------------------------------------
 # 1.5. Configurar php.ini para optimizar el rendimiento
 RUN echo 'max_execution_time = 180' >> /usr/local/etc/php/conf.d/custom.ini \
     && echo 'max_input_time = 180' >> /usr/local/etc/php/conf.d/custom.ini \
@@ -27,7 +37,7 @@ RUN a2enmod rewrite
 # 3. Copiar código de EspoCRM al contenedor
 COPY . /var/www/html/
 
-# 4. Configurar Apache para apuntar a la RAÍZ DEL PROYECTO (/var/www/html)
+# 4. Configurar Apache
 RUN echo '<VirtualHost *:80>\n' \
     '    DocumentRoot /var/www/html\n' \
     '    <Directory /var/www/html>\n' \
@@ -39,7 +49,7 @@ RUN echo '<VirtualHost *:80>\n' \
     '</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
 # ----------------------------------------------------------------------------------
-# 5. PERMISOS: Ajustes específicos para que EspoCRM pueda guardar config.php
+# 5. PERMISOS (Ajuste crítico para guardar el config.php)
 # ----------------------------------------------------------------------------------
 
 # 5a. Permisos generales: Propiedad para www-data y permisos estándar
@@ -59,4 +69,3 @@ EXPOSE 80
 
 # 7. Iniciar Apache en primer plano
 CMD ["apache2-foreground"]
-
