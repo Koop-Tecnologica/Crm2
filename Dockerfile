@@ -33,19 +33,21 @@ RUN a2enmod rewrite
 # 3. Copiar código de EspoCRM al contenedor
 COPY . /var/www/html/
 
-# 4. Configurar Apache para apuntar a la RAÍZ DEL PROYECTO (/var/www/html)
-RUN echo '<VirtualHost *:80>\n' \
-    '    DocumentRoot /var/www/html\n' \
-    '    <Directory /var/www/html>\n' \
-    '        AllowOverride All\n' \
-    '        Require all granted\n' \
-    '    </Directory>\n' \
-    '    ErrorLog ${APACHE_LOG_DIR}/error.log\n' \
-    '    CustomLog ${APACHE_LOG_DIR}/access.log combined\n' \
-    '    </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
+# ----------------------------------------------------------------------------------
+# 4. CONFIGURACIÓN DE APACHE (Corregido con printf para evitar errores de sintaxis)
+# ----------------------------------------------------------------------------------
+RUN printf '<VirtualHost *:80>\n' > /etc/apache2/sites-available/000-default.conf && \
+    printf '    DocumentRoot /var/www/html\n' >> /etc/apache2/sites-available/000-default.conf && \
+    printf '    <Directory /var/www/html>\n' >> /etc/apache2/sites-available/000-default.conf && \
+    printf '        AllowOverride All\n' >> /etc/apache2/sites-available/000-default.conf && \
+    printf '        Require all granted\n' >> /etc/apache2/sites-available/000-default.conf && \
+    printf '    </Directory>\n' >> /etc/apache2/sites-available/000-default.conf && \
+    printf '    ErrorLog ${APACHE_LOG_DIR}/error.log\n' >> /etc/apache2/sites-available/000-default.conf && \
+    printf '    CustomLog ${APACHE_LOG_DIR}/access.log combined\n' >> /etc/apache2/sites-available/000-default.conf && \
+    printf '</VirtualHost>\n' >> /etc/apache2/sites-available/000-default.conf
 
 # ----------------------------------------------------------------------------------
-# 5. PERMISOS (Bloque que resuelve todos los problemas de persistencia y build)
+# 5. PERMISOS (Bloque que resuelve todos los problemas de persistencia)
 # ----------------------------------------------------------------------------------
 
 # 5a. Permisos generales: Propiedad para www-data y permisos estándar
@@ -54,7 +56,7 @@ RUN chown -R www-data:www-data /var/www/html && \
     find /var/www/html -type f -exec chmod 644 {} \;
 
 # 5b. CREACIÓN y CORRECCIÓN CRÍTICA DE ESPO-CRM: 
-# Crea la carpeta 'config' y luego aplica los permisos 775 a 'data' y 'config'.
+# Crea la carpeta 'config' y luego aplica los permisos 775.
 RUN mkdir -p /var/www/html/application/config && \
     chmod -R 775 /var/www/html/data && \
     chmod -R 775 /var/www/html/application/config
