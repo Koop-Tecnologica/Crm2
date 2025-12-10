@@ -10,31 +10,28 @@ RUN apt-get update && apt-get install -y \
 # Habilitar mod_rewrite
 RUN a2enmod rewrite
 
-# Establecer el directorio de trabajo
+# Establecer directorio de trabajo
 WORKDIR /var/www/html
 
-# Copiar código de EspoCRM al contenedor
+# Copiar proyecto
 COPY . /var/www/html/
 
-# Asegurar permisos correctos para evitar que vuelva al instalador
+# Crear las carpetas que sí usa EspoCRM
+RUN mkdir -p /var/www/html/data \
+    && mkdir -p /var/www/html/custom \
+    && mkdir -p /var/www/html/uploads
+
+# Permisos correctos
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 /var/www/html \
     && chmod -R 775 /var/www/html/data \
     && chmod -R 775 /var/www/html/custom \
-    && chmod -R 775 /var/www/html/application \
-    && chmod -R 775 /var/www/html/extension \
-    && chmod -R 775 /var/www/html/api \
-    && chmod -R 775 /var/www/html/client
+    && chmod -R 775 /var/www/html/uploads
 
-# Evitar que Render cachee el instalador
-RUN rm -f /var/www/html/data/config-internal.php || true
-
-# Configurar Apache
-RUN printf "<Directory /var/www/html>\n\
-    AllowOverride All\n\
-</Directory>\n" > /etc/apache2/conf-available/espo.conf \
-    && a2enconf espo
+# Evitar volver al instalador si Render borra config-internal.php
+# (no elimina nada, solo previene errores)
+RUN touch /var/www/html/data/config-internal.php
 
 EXPOSE 80
 
 CMD ["apache2-foreground"]
+
