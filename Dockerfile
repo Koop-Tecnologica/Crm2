@@ -1,37 +1,51 @@
+# Imagen base de PHP 8.2 con Apache
 FROM php:8.2-apache
 
-# Instalar dependencias del sistema
+# 1. Instala extensiones y librerías necesarias (INCLUYE EXIF)
 RUN apt-get update && apt-get install -y \
-    libpq-dev \
     unzip \
-    git \
-    && docker-php-ext-install pdo pdo_pgsql
+    libpng-dev \
+    libjpeg-dev \
+    libpq-dev \
+    libzip-dev \
+    libexif-dev \
+    && docker-php-ext-configure gd --with-jpeg \
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql gd zip exif \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Habilitar mod_rewrite
+# 1.5. Configurar php.ini para optimizar el rendimiento (NUEVO PASO)
+RUN echo 'max_execution_time = 180' >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo 'max_input_time = 180' >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo 'post_max_size = 20M' >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo 'upload_max_filesize = 20M' >> /usr/local/etc/php/conf.d/custom.ini
+
+# 2. Habilitar mod_rewrite
 RUN a2enmod rewrite
 
-# Establecer directorio de trabajo
-WORKDIR /var/www/html
-
-# Copiar proyecto
+# 3. Copiar código de EspoCRM al contenedor
 COPY . /var/www/html/
 
-# Crear las carpetas que sí usa EspoCRM
-RUN mkdir -p /var/www/html/data \
-    && mkdir -p /var/www/html/custom \
-    && mkdir -p /var/www/html/uploads
+# 4. Configurar Apache para apuntar a la RAÍZ DEL PROYECTO (/var/www/html)
+RUN echo '<VirtualHost *:80>\n' \
+    '    DocumentRoot /var/www/html\n' \
+    '    <Directory /var/www/html>\n' \
+    '        AllowOverride All\n' \
+    '        Require all granted\n' \
+    '    </Directory>\n' \
+    '    ErrorLog ${APACHE_LOG_DIR}/error.log\n' \
+    '    CustomLog ${APACHE_LOG_DIR}/access.log combined\n' \
+    '</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
-# Permisos correctos
+# 5. Permisos
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 /var/www/html/data \
-    && chmod -R 775 /var/www/html/custom \
-    && chmod -R 775 /var/www/html/uploads
+    && find /var/www/html -type d -exec chmod 755 {} \; \
+    && find /var/www/html -type f -exec chmod 644 {} \;
 
-# Evitar volver al instalador si Render borra config-internal.php
-# (no elimina nada, solo previene errores)
-RUN touch /var/www/html/data/config-internal.php
-
+# 6. Puerto expuesto
 EXPOSE 80
 
+# 7. Iniciar Apache en primer plano
 CMD ["apache2-foreground"]
 
