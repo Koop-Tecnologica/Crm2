@@ -2,7 +2,7 @@
 FROM php:8.2-apache
 
 # ----------------------------------------------------------------------------------
-# 1. INSTALACIÓN DE DEPENDENCIAS (Solución Unificada)
+# 1. INSTALACIÓN DE DEPENDENCIAS (Solución Unificada para estabilidad)
 # ----------------------------------------------------------------------------------
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -45,7 +45,7 @@ RUN echo '<VirtualHost *:80>\n' \
     '    </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
 # ----------------------------------------------------------------------------------
-# 5. PERMISOS (Corregido y Limpiado de caracteres ocultos)
+# 5. PERMISOS (Bloque que resuelve todos los problemas de persistencia y build)
 # ----------------------------------------------------------------------------------
 
 # 5a. Permisos generales: Propiedad para www-data y permisos estándar
@@ -53,8 +53,10 @@ RUN chown -R www-data:www-data /var/www/html && \
     find /var/www/html -type d -exec chmod 755 {} \; && \
     find /var/www/html -type f -exec chmod 644 {} \;
 
-# 5b. CORRECCIÓN CRÍTICA DE ESPO-CRM: Aseguramos permisos de escritura (775)
-RUN chmod -R 775 /var/www/html/data && \
+# 5b. CREACIÓN y CORRECCIÓN CRÍTICA DE ESPO-CRM: 
+# Crea la carpeta 'config' y luego aplica los permisos 775 a 'data' y 'config'.
+RUN mkdir -p /var/www/html/application/config && \
+    chmod -R 775 /var/www/html/data && \
     chmod -R 775 /var/www/html/application/config
 
 # ----------------------------------------------------------------------------------
