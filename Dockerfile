@@ -2,26 +2,25 @@
 FROM php:8.2-apache
 
 # ----------------------------------------------------------------------------------
-# 1. INSTALACIÓN DE DEPENDENCIAS (Ajuste para estabilidad en Render/Apt)
+# 1. INSTALACIÓN DE DEPENDENCIAS (Solución Unificada para evitar el error 100)
 # ----------------------------------------------------------------------------------
+# Unificamos update, install, configuración de extensiones y limpieza en un solo paso
+# para garantizar que se ejecute en el mismo contexto y resolver problemas de caché/repositorios.
 
-# 1a. Actualizar y aplicar parches
-RUN apt-get update --fix-missing && apt-get -y upgrade
-
-# 1b. Instalar librerías necesarias
-RUN apt-get install -y \
-    unzip \
-    libpng-dev \
-    libjpeg-dev \
-    libpq-dev \
-    libzip-dev \
-    libexif-dev
-
-# 1c. Instalar extensiones de PHP y limpiar
-RUN docker-php-ext-configure gd --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql pdo_pgsql gd zip exif \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    unzip \
+    libpng-dev \
+    libjpeg-dev \
+    libpq-dev \
+    libzip-dev \
+    libexif-dev && \
+    \
+    docker-php-ext-configure gd --with-jpeg && \
+    docker-php-ext-install pdo pdo_mysql pdo_pgsql gd zip exif && \
+    \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # ----------------------------------------------------------------------------------
 # 1.5. Configurar php.ini para optimizar el rendimiento
