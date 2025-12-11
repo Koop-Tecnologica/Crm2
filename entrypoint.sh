@@ -39,11 +39,11 @@ EOF
     echo "Configuración generada exitosamente."
     
     # 3. CRÍTICO: Ejecutar el comando de instalación de EspoCRM para crear las tablas en la DB.
+    # PROBAMOS UNA RUTA MÁS CORTA Y COMPATIBLE: /var/www/html/bin/command
     echo "Ejecutando instalación de DB (creación de tablas)..."
 
-    # Nota: Usamos la ruta /var/www/html/bin/command.php, que se encuentra en EspoCRM.
-    /usr/local/bin/php /var/www/html/bin/command.php install --silent --user=$ADMIN_USER --password=$ADMIN_PASSWORD --language=es_ES
-    
+    /usr/local/bin/php /var/www/html/bin/command setup
+
     if [ $? -ne 0 ]; then
         echo "Error FATAL: Falló la creación de tablas en la base de datos."
         # Permitimos que siga para que se vea el error en la web.
