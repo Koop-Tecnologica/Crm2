@@ -2,7 +2,7 @@
 FROM php:8.2-apache
 
 # ----------------------------------------------------------------------------------
-# 1. INSTALACIÓN DE DEPENDENCIAS (Solución Unificada para estabilidad)
+# 1. INSTALACIÓN DE DEPENDENCIAS (Formato UNIFICADO para evitar inestabilidad/fallos)
 # ----------------------------------------------------------------------------------
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -33,9 +33,7 @@ RUN a2enmod rewrite
 # 3. Copiar código de EspoCRM al contenedor
 COPY . /var/www/html/
 
-# ----------------------------------------------------------------------------------
-# 4. CONFIGURACIÓN DE APACHE (Corregido con printf para evitar errores de sintaxis)
-# ----------------------------------------------------------------------------------
+# 4. CONFIGURACIÓN DE APACHE (Uso de printf limpio)
 RUN printf '<VirtualHost *:80>\n' > /etc/apache2/sites-available/000-default.conf && \
     printf '    DocumentRoot /var/www/html\n' >> /etc/apache2/sites-available/000-default.conf && \
     printf '    <Directory /var/www/html>\n' >> /etc/apache2/sites-available/000-default.conf && \
@@ -46,25 +44,23 @@ RUN printf '<VirtualHost *:80>\n' > /etc/apache2/sites-available/000-default.con
     printf '    CustomLog ${APACHE_LOG_DIR}/access.log combined\n' >> /etc/apache2/sites-available/000-default.conf && \
     printf '</VirtualHost>\n' >> /etc/apache2/sites-available/000-default.conf
 
-# ----------------------------------------------------------------------------------
-# 5. PERMISOS (Bloque que resuelve todos los problemas de persistencia)
-# ----------------------------------------------------------------------------------
-
-# 5a. Permisos generales: Propiedad para www-data y permisos estándar
+# 5. PERMISOS (Combinación de chmod general y chmod 777 para los directorios críticos)
 RUN chown -R www-data:www-data /var/www/html && \
     find /var/www/html -type d -exec chmod 755 {} \; && \
-    find /var/www/html -type f -exec chmod 644 {} \;
-
-# 5b. CREACIÓN y CORRECCIÓN CRÍTICA DE ESPO-CRM: 
-# Crea la carpeta 'config' y luego aplica los permisos 775.
-RUN mkdir -p /var/www/html/application/config && \
-    chmod -R 775 /var/www/html/data && \
-    chmod -R 775 /var/www/html/application/config
+    find /var/www/html -type f -exec chmod 644 {} \; && \
+    mkdir -p /var/www/html/application/config && \
+    chmod -R 777 /var/www/html/data && \
+    chmod -R 777 /var/www/html/application/config
 
 # ----------------------------------------------------------------------------------
+# 6. EXPOSE y CONFIGURACIÓN FINAL (Usando entrypoint.sh)
+# ----------------------------------------------------------------------------------
 
-# 6. Puerto expuesto
 EXPOSE 80
 
-# 7. Iniciar Apache en primer plano
-CMD ["apache2-foreground"]
+# Copia el script y le da permisos de ejecución
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Usa el script como el punto de entrada principal del contenedor
+CMD ["/usr/local/bin/entrypoint.sh"]
