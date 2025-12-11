@@ -4,7 +4,6 @@ set -e
 CONFIG_DIR="/var/www/html/application/config"
 CONFIG_FILE="$CONFIG_DIR/config.php"
 
-# --- DEFINICIÓN DE VARIABLES ---
 # CRÍTICO: Debe ser 'pgsql' si usas PostgreSQL
 DB_TYPE="pgsql"
 
@@ -37,12 +36,24 @@ return array (
   'isInstalled' => true,
 );
 EOF
-
-    echo "Configuración generada exitosamente. Saltando limpieza de caché."
+    echo "Configuración generada exitosamente."
     
+    # 3. CRÍTICO: Ejecutar el comando de instalación de EspoCRM para crear las tablas en la DB.
+    echo "Ejecutando instalación de DB (creación de tablas)..."
+
+    # Nota: Usamos la ruta /var/www/html/bin/command.php, que se encuentra en EspoCRM.
+    /usr/local/bin/php /var/www/html/bin/command.php install --silent --user=$ADMIN_USER --password=$ADMIN_PASSWORD --language=es_ES
+    
+    if [ $? -ne 0 ]; then
+        echo "Error FATAL: Falló la creación de tablas en la base de datos."
+        # Permitimos que siga para que se vea el error en la web.
+    else
+        echo "Instalación de DB (tablas) completada exitosamente."
+    fi
+
 else
     echo "Config.php encontrado. Iniciando CRM..."
 fi
 
-# 3. Iniciar Apache en primer plano
+# 4. Iniciar Apache en primer plano
 exec apache2-foreground
