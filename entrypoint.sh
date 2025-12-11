@@ -4,37 +4,53 @@ set -e
 CONFIG_DIR="/var/www/html/application/config"
 CONFIG_FILE="$CONFIG_DIR/config.php"
 
+# --- DEFINICIÓN DE VARIABLES ---
+# Usamos las variables de entorno de Render
+DB_TYPE="pgsql" # CRÍTICO: Debe ser 'pgsql' si usas PostgreSQL
+
 # --- EJECUCIÓN DEL SCRIPT ---
 
 # 1. Chequea si la configuración ya fue generada
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Config.php no encontrado. Ejecutando instalación de EspoCRM por CLI..."
+    echo "Config.php no encontrado. Generando configuración de base de datos..."
 
-    # 2. Construir el comando usando eval para forzar la inyección de variables
-    INSTALL_COMMAND="/usr/local/bin/php /var/www/html/install/cli.php"
-    
-    # Parámetros para la DB (deben funcionar)
-    DB_PARAMS="--database-host=$DB_HOST --database-user=$DB_USER --database-password=$DB_PASSWORD --database-name=$DB_NAME --database-type=pgsql"
-    
-    # Parámetros CRÍTICOS del administrador (usando -a, -p cortos para compatibilidad forzada)
-    ADMIN_PARAMS="--admin-user=$ADMIN_USER --admin-password=$ADMIN_PASSWORD --admin-email=admin@example.com"
-    
-    # Parámetros Generales
-    GENERAL_PARAMS="--silent=1 --language=es_ES --site-url=https://crm2-rd3k.onrender.com"
-    
-    # Ejecución de la instalación
-    eval "$INSTALL_COMMAND $DB_PARAMS $ADMIN_PARAMS $GENERAL_PARAMS"
+    # 2. Creación del archivo config.php (inyección directa de variables de entorno)
+    # Esto elimina la dependencia del cli.php de EspoCRM que estaba fallando.
+    cat << EOF > "$CONFIG_FILE"
+<?php
+return array (
+  'database' =>
+  array (
+    'driver' => '$DB_TYPE',
+    'host' => '$DB_HOST',
+    'port' => '$DB_PORT',
+    'name' => '$DB_NAME',
+    'user' => '$DB_USER',
+    'password' => '$DB_PASSWORD',
+  ),
+  'setup' =>
+  array (
+    'adminUsername' => '$ADMIN_USER',
+    'adminPassword' => '$ADMIN_PASSWORD',
+    'defaultLanguage' => 'es_ES',
+    'primaryUrl' => 'https://crm2-rd3k.onrender.com/',
+  ),
+  'isInstalled' => true,
+);
+EOF
 
-    # $? captura el código de salida del comando anterior (la instalación PHP)
+    # 3. Borrar el caché de EspoCRM para que cargue la nueva configuración
+    echo "Configuración generada. Limpiando caché..."
+    /usr/local/bin/php /var/www/html/bin/command.php cache:clear
+
     if [ $? -ne 0 ]; then
-        echo "Error: Falló la instalación por CLI (código de salida $?). Por favor, revisa las variables DB_* y ADMIN_*"
-        # El script sigue para iniciar Apache y exponer el error en los logs.
+        echo "Advertencia: Falló la limpieza de caché, pero la configuración fue escrita. Intentando continuar."
     else
-        echo "Instalación CLI completada exitosamente."
+        echo "Configuración y limpieza de caché completada exitosamente."
     fi
 else
     echo "Config.php encontrado. Iniciando CRM..."
 fi
 
-# 3. Iniciar Apache en primer plano
+# 4. Iniciar Apache en primer plano
 exec apache2-foreground
