@@ -10,12 +10,24 @@ CONFIG_FILE="$CONFIG_DIR/config.php"
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Config.php no encontrado. Ejecutando instalación de EspoCRM por CLI..."
 
-    # 2. Comando CLI en UNA SOLA LÍNEA para asegurar que todos los argumentos se pasen correctamente.
-    /usr/local/bin/php /var/www/html/install/cli.php --silent=1 --language=es_ES --database-host=$DB_HOST --database-user=$DB_USER --database-password=$DB_PASSWORD --database-name=$DB_NAME --database-type=pgsql --site-url=https://crm2-rd3k.onrender.com --admin-user=$ADMIN_USER --admin-password=$ADMIN_PASSWORD --admin-email=admin@example.com
+    # 2. Construir el comando usando eval para forzar la inyección de variables
+    INSTALL_COMMAND="/usr/local/bin/php /var/www/html/install/cli.php"
+    
+    # Parámetros para la DB (deben funcionar)
+    DB_PARAMS="--database-host=$DB_HOST --database-user=$DB_USER --database-password=$DB_PASSWORD --database-name=$DB_NAME --database-type=pgsql"
+    
+    # Parámetros CRÍTICOS del administrador (usando -a, -p cortos para compatibilidad forzada)
+    ADMIN_PARAMS="--admin-user=$ADMIN_USER --admin-password=$ADMIN_PASSWORD --admin-email=admin@example.com"
+    
+    # Parámetros Generales
+    GENERAL_PARAMS="--silent=1 --language=es_ES --site-url=https://crm2-rd3k.onrender.com"
+    
+    # Ejecución de la instalación
+    eval "$INSTALL_COMMAND $DB_PARAMS $ADMIN_PARAMS $GENERAL_PARAMS"
 
     # $? captura el código de salida del comando anterior (la instalación PHP)
     if [ $? -ne 0 ]; then
-        echo "Error: Falló la instalación por CLI (código de salida $?). Revisa las variables DB_* y ADMIN_*"
+        echo "Error: Falló la instalación por CLI (código de salida $?). Por favor, revisa las variables DB_* y ADMIN_*"
         # El script sigue para iniciar Apache y exponer el error en los logs.
     else
         echo "Instalación CLI completada exitosamente."
