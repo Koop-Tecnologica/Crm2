@@ -13,7 +13,8 @@ DB_TYPE="pgsql"
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Config.php no encontrado. Generando configuración de base de datos..."
 
-    # 2. Creación del archivo config.php (inyección directa de variables de entorno)
+    # 2. Creación del archivo config.php (inyección directa de variables de entorno de Render)
+    # Esto garantiza que el driver 'pgsql' y los datos de conexión se escriban correctamente.
     cat << EOF > "$CONFIG_FILE"
 <?php
 return array (
@@ -36,19 +37,18 @@ return array (
   'isInstalled' => true,
 );
 EOF
-    echo "Configuración generada exitosamente."
+    echo "Configuración de DB (config.php) generada exitosamente."
     
-    # 3. CRÍTICO: Ejecutar el comando de instalación de EspoCRM para crear las tablas en la DB.
-    # PROBAMOS UNA RUTA MÁS CORTA Y COMPATIBLE: /var/www/html/bin/command
-    echo "Ejecutando instalación de DB (creación de tablas)..."
-
-    /usr/local/bin/php /var/www/html/bin/command setup
+    # 3. CRÍTICO: Inicializar la base de datos usando 'repair --silent'
+    # Este comando crea las tablas si el config.php ya existe, que es lo que necesitamos.
+    echo "Ejecutando inicialización de DB (repair --silent)..."
+    
+    /usr/local/bin/php /var/www/html/bin/command repair --silent
 
     if [ $? -ne 0 ]; then
-        echo "Error FATAL: Falló la creación de tablas en la base de datos."
-        # Permitimos que siga para que se vea el error en la web.
+        echo "Error FATAL: Falló la inicialización de la base de datos (repair). Revisa la ruta de 'bin/command'."
     else
-        echo "Instalación de DB (tablas) completada exitosamente."
+        echo "Inicialización de DB (tablas) completada exitosamente."
     fi
 
 else
