@@ -10,8 +10,7 @@ CONFIG_FILE="$CONFIG_DIR/config.php"
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Config.php no encontrado. Ejecutando instalación de EspoCRM por CLI..."
 
-    # 2. Comando CLI en UNA SOLA LÍNEA para evitar el error 'The option [-s] is required.'
-    # ¡Las variables ($DB_HOST, etc.) SÍ están aquí, pasadas como argumentos!
+    # 2. Comando CLI en UNA SOLA LÍNEA para asegurar que todos los argumentos se pasen correctamente.
     /usr/local/bin/php /var/www/html/install/cli.php --silent=1 --language=es_ES --database-host=$DB_HOST --database-user=$DB_USER --database-password=$DB_PASSWORD --database-name=$DB_NAME --database-type=pgsql --site-url=https://crm2-rd3k.onrender.com --admin-user=$ADMIN_USER --admin-password=$ADMIN_PASSWORD --admin-email=admin@example.com
 
     # $? captura el código de salida del comando anterior (la instalación PHP)
