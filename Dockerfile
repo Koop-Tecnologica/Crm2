@@ -2,7 +2,7 @@
 FROM php:8.2-apache
 
 # ----------------------------------------------------------------------------------
-# 1. INSTALACIÓN DE DEPENDENCIAS (Formato UNIFICADO para evitar inestabilidad/fallos)
+# 1. INSTALACIÓN DE DEPENDENCIAS
 # ----------------------------------------------------------------------------------
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -20,20 +20,25 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ----------------------------------------------------------------------------------
-# 1.5. Configurar php.ini para optimizar el rendimiento
+# 2. Configuración php.ini
+# ----------------------------------------------------------------------------------
 RUN echo 'max_execution_time = 180' >> /usr/local/etc/php/conf.d/custom.ini \
     && echo 'max_input_time = 180' >> /usr/local/etc/php/conf.d/custom.ini \
     && echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/custom.ini \
     && echo 'post_max_size = 20M' >> /usr/local/etc/php/conf.d/custom.ini \
     && echo 'upload_max_filesize = 20M' >> /usr/local/etc/php/conf.d/custom.ini
 
-# 2. Habilitar mod_rewrite
+# 3. Habilitar mod_rewrite
 RUN a2enmod rewrite
 
-# 3. Copiar código de EspoCRM al contenedor
+# ----------------------------------------------------------------------------------
+# 4. Copiar código de EspoCRM al contenedor
+# ----------------------------------------------------------------------------------
 COPY . /var/www/html/
 
-# 4. CONFIGURACIÓN DE APACHE (Uso de printf limpio)
+# ----------------------------------------------------------------------------------
+# 5. CONFIGURACIÓN DE APACHE
+# ----------------------------------------------------------------------------------
 RUN printf '<VirtualHost *:80>\n' > /etc/apache2/sites-available/000-default.conf && \
     printf '    DocumentRoot /var/www/html\n' >> /etc/apache2/sites-available/000-default.conf && \
     printf '    <Directory /var/www/html>\n' >> /etc/apache2/sites-available/000-default.conf && \
@@ -44,23 +49,24 @@ RUN printf '<VirtualHost *:80>\n' > /etc/apache2/sites-available/000-default.con
     printf '    CustomLog ${APACHE_LOG_DIR}/access.log combined\n' >> /etc/apache2/sites-available/000-default.conf && \
     printf '</VirtualHost>\n' >> /etc/apache2/sites-available/000-default.conf
 
-# 5. PERMISOS (Combinación de chmod general y chmod 777 para los directorios críticos)
+# ----------------------------------------------------------------------------------
+# 6. PERMISOS PARA ESPOSCRM Y CARPETAS CRÍTICAS
+# ----------------------------------------------------------------------------------
 RUN chown -R www-data:www-data /var/www/html && \
     find /var/www/html -type d -exec chmod 755 {} \; && \
     find /var/www/html -type f -exec chmod 644 {} \; && \
     mkdir -p /var/www/html/application/config && \
-    chmod -R 777 /var/www/html/data && \
-    chmod -R 777 /var/www/html/application/config
+    chmod -R 755 /var/www/html/data && \
+    chmod -R 755 /var/www/html/application/config
 
 # ----------------------------------------------------------------------------------
-# 6. EXPOSE y CONFIGURACIÓN FINAL (Usando entrypoint.sh)
+# 7. Exponer puerto 80 y configurar entrypoint
 # ----------------------------------------------------------------------------------
-
 EXPOSE 80
 
-# Copia el script y le da permisos de ejecución
+# Copiar el script entrypoint y darle permisos de ejecución
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Usa el script como el punto de entrada principal del contenedor
+# Definir el entrypoint
 CMD ["/usr/local/bin/entrypoint.sh"]
